@@ -1,3 +1,5 @@
+## VIAPRIZE
+
 # Decentralized Voting System
 
 A decentralized voting system built on the Ethereum blockchain, allowing for secure and transparent voting on various submissions. This smart contract manages the submission of proposals, voting, and admin management.
