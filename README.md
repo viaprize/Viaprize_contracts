@@ -2,35 +2,66 @@
 
 # Decentralized Voting System
 
-A decentralized voting system built on the Ethereum blockchain, allowing for secure and transparent voting on various submissions. This smart contract manages the submission of proposals, voting, and admin management.
+A decentralized voting system built on the Ethereum blockchain, allowing for secure and transparent voting on various submissions. This smart contract manages the submission of proposals, voting, funding, and admin management using an AVL tree data structure for efficient storage and retrieval. This is considered a Dominant Assurance Contract, where if target funding is crossed by a deadline (voting period) then funded submissions can be paid out. Otherwise, any funds/votes for a submission that did not meet it's funded target are elligible for a refund (minus tx fees/platform fee of 5%)
 
 # Features
 
 - Admin-controlled submission process.
 - Secure and transparent voting.
-- Voting power allocation for admins.
-- Unused voting power redistribution.
+- Voting power allocation for funders.
+- Threshold-based funding for submissions.
+- Unused voting power redistribution. !! needs convo - might remove feature
 - Time-based voting period.
+- AVL tree implementation for efficient submission storage and retrieval.
 
-# Smart Contract Functions
+
+# Smart Contract Functions Viaprize.sol
 
 * submit_proposal(string memory _proposal)
-* Submits a proposal to the system. Can only be called by admins.
+* Submits a proposal to the system.
 
 * vote(uint _submission, bool _vote)
-* Allows users to vote on a specific submission. Users can vote 'yes' or 'no'.
+* Allows users to vote on a specific submission. Funds = voting power
 
 * use_unused_votes(uint _submission)
-* Allows admins to redistribute their unused voting power to a specific submission.
+* Allows admins to redistribute their unused voting power to a specific submission. (might remove this)
 
 * end_voting_period()
-* Ends the voting period, preventing further voting or proposal submissions. Can only be called by the contract owner.
+* Ends the voting period, preventing further voting or proposal submissions - distributes funds to funded submissions and 5% to platform. Can only be calledby     
+  the contract owner.
 
-* add_admin(address _newAdmin)
-* Adds a new admin to the system. Can only be called by the contract owner.
+# Smart Contract Functions SubmissionAVLTree.sol
 
-* remove_admin(address _admin)
-* Removes an admin from the system. Can only be called by the contract owner.
+* updateFunderBalance(bytes32 _submissionHash, address funder, uint256 balances)
+* Updates the funder's balance for a specific submission.
+
+* addVotes(bytes32 submissionHash, uint256 votes)
+* Allows users to vote on a specific submission.
+
+* subVotes(bytes32 submissionHash, uint256 votes)
+* Allows users to remove votes from a specific submission.
+
+* thresholdCrossed(bytes32 submissionHash)
+* Returns true if the number of votes is greater than or equal to the threshold.
+
+* setThresholdCrossed(bytes32 submissionHash, bool status)
+* Sets the funded status of a submission.
+
+* findSubmission(bytes32 submissionHash)
+* Returns the index of a submission in the AVL tree.
+
+* getSubmission(bytes32 submissionHash)
+* Returns a submission's information given its hash.
+
+* getAllSubmissions()
+* Returns an array of all submissions.
+
+* inOrderTraversal()
+* Returns an array of all submissions sorted by their submission hash.
+
+* getByIndex(uint256 index)
+* Returns a submission's information by its index in the AVL tree.
+
 
 # Usage
 
