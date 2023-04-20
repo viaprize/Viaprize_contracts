@@ -17,50 +17,64 @@ A decentralized voting system built on the Ethereum blockchain, allowing for sec
 
 # Smart Contract Functions Viaprize.sol
 
-* submit_proposal(string memory _proposal)
-* Submits a proposal to the system.
+* addSubmission(string memory _proposal)
+
+Submits a proposal to the system.
 
 * vote(uint _submission, bool _vote)
-* Allows users to vote on a specific submission. Funds = voting power
+
+Allows users to vote on a specific submission. Funds = voting power
 
 * use_unused_votes(uint _submission)
-* Allows admins to redistribute their unused voting power to a specific submission. (might remove this)
+
+Allows admins to redistribute their unused voting power to a specific submission. (might remove this)
 
 * end_voting_period()
-* Ends the voting period, preventing further voting or proposal submissions - distributes funds to funded submissions and 5% to platform. Can only be calledby     
-  the contract owner.
+
+Ends the voting period, preventing further voting or proposal submissions - distributes funds to funded submissions and 5% to platform. Can only be calledby     
+the contract owner.
 
 # Smart Contract Functions SubmissionAVLTree.sol
 
 * updateFunderBalance(bytes32 _submissionHash, address funder, uint256 balances)
-* Updates the funder's balance for a specific submission.
+
+Updates the funder's balance for a specific submission.
 
 * addVotes(bytes32 submissionHash, uint256 votes)
-* Allows users to vote on a specific submission.
+
+Allows users to vote on a specific submission.
 
 * subVotes(bytes32 submissionHash, uint256 votes)
-* Allows users to remove votes from a specific submission.
+
+Allows users to remove votes from a specific submission.
 
 * thresholdCrossed(bytes32 submissionHash)
-* Returns true if the number of votes is greater than or equal to the threshold.
+
+Returns true if the number of votes is greater than or equal to the threshold.
 
 * setThresholdCrossed(bytes32 submissionHash, bool status)
-* Sets the funded status of a submission.
+
+Sets the funded status of a submission.
 
 * findSubmission(bytes32 submissionHash)
-* Returns the index of a submission in the AVL tree.
+
+Returns the index of a submission in the AVL tree.
 
 * getSubmission(bytes32 submissionHash)
-* Returns a submission's information given its hash.
+
+Returns a submission's information given its hash.
 
 * getAllSubmissions()
-* Returns an array of all submissions.
+
+Returns an array of all submissions.
 
 * inOrderTraversal()
-* Returns an array of all submissions sorted by their submission hash.
+
+Returns an array of all submissions sorted by their submission hash.
 
 * getByIndex(uint256 index)
-* Returns a submission's information by its index in the AVL tree.
+
+Returns a submission's information by its index in the AVL tree.
 
 
 # Usage
