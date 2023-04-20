@@ -17,7 +17,7 @@ contract YourContract {
 
     address[] public funderAddresses; //this will be an array of the addresses of the funders making it easier to iterate through them
 
-    bytes32[] public thresholdCrossedSubmissions;
+    bytes32[] public thresholdCrossedSubmissions; //this will be an array of the submissions that have crossed the threshold
 
     mapping (address => bool) public admins; //this will be a mapping of the addresses of the admins to a boolean value of true or false
 
@@ -25,17 +25,17 @@ contract YourContract {
 
     uint256 public total_rewards; //this will be the total amount of rewards available
 
-    uint256 public platform_reward;
+    uint256 public platform_reward; //this will be the amount of rewards that the platform will receive
 
-    bool public distributed;
+    bool public distributed; //this will be a boolean value of true or false to determine if the rewards have been distributed
 
 
-    SubmissionAVLTree private submissionTree;
+    SubmissionAVLTree private submissionTree; //this will be the submission tree coming from the SubmissionAVLTree contract
 
-        // Add a new mapping to store each funder's votes on each submission
-    mapping(address => mapping(bytes32 => uint256)) public funderVotes;
+    // Add a new mapping to store each funder's votes on each submission
+    mapping(address => mapping(bytes32 => uint256)) public funderVotes; 
 
-    mapping(bytes32 => mapping(address => bool)) public refunded;
+    mapping(bytes32 => mapping(address => bool)) public refunded; //this will be a mapping of the submissions to the addresses of the funders to a boolean value of true or false to determine if they have been refunded
 
     
     //events
@@ -51,10 +51,10 @@ contract YourContract {
         admins[msg.sender] = true;
         admins[0xcd258fCe467DDAbA643f813141c3560FF6c12518] = true;
         // Initialize the submissionTree
-        submissionTree = SubmissionAVLTree(submissionContract);
+        submissionTree = SubmissionAVLTree(submissionContract); 
     }
 
-        // ... (existing functions)
+
         //create a function to start the submission period
     function start_submission_period(uint256 _submission_time) public {
         require(admins[msg.sender] == true, "You are not an admin");
@@ -78,6 +78,7 @@ contract YourContract {
         submission_time = 0;
     }
 
+    //start the voting period
     function start_voting_period(uint256 _voting_time) public {
         require(admins[msg.sender] == true, "You are not an admin");
         require (block.timestamp > submission_time, "Submission period has not ended");
@@ -85,6 +86,7 @@ contract YourContract {
         //voting time also in days
     }
 
+    //end the voting period
     function end_voting_period() public {
     require(admins[msg.sender] == true, "You are not an admin");
     voting_time = 0;
@@ -92,14 +94,13 @@ contract YourContract {
 
 }
 
+//Distribute rewards
 function distributeRewards() private {
     require(admins[msg.sender] == true, "You are not an admin");
     require(distributed == false, "Rewards have already been distributed");
     SubmissionAVLTree.SubmissionInfo[] memory allSubmissions = getAllSubmissions();
 
     platform_reward = (total_funds * 5) / 100;
-
-    // Removed the unnecessary require statement as the rewards calculation will be done in the loop
 
     // Count the number of funded submissions and add them to the fundedSubmissions array
     for (uint256 i = 0; i < allSubmissions.length; i++) {
@@ -110,8 +111,6 @@ function distributeRewards() private {
         }
     }
 
-    // Removed the subtraction of total_rewards from total_funds as it's already adjusted in the loop
-
     total_rewards = 0;
 
     // Send the platform reward
@@ -121,6 +120,7 @@ function distributeRewards() private {
     distributed = true;
 
 }
+
 //update threshhold
 function updateThresholdStatus(bytes32 _submissionHash) internal {
     SubmissionAVLTree.SubmissionInfo memory submission = submissionTree.getSubmission(_submissionHash);
@@ -163,7 +163,7 @@ function addSubmission(address submitter, string memory submissionText, uint256 
     }
     }
 
-    // Update the change_vote function
+    //Change_votes should now stop folks from being able to change someone elses vote
     function change_vote(bytes32 _previous_submissionHash, bytes32 _new_submissionHash, uint256 amount) public {
         require(block.timestamp < voting_time, "Voting period has ended");
         require(funderVotes[msg.sender][_previous_submissionHash] >= amount, "You do not have enough votes on the previous submission from this address");
@@ -190,11 +190,12 @@ function addSubmission(address submitter, string memory submissionText, uint256 
         }
         }
 
-
+    //uses functionality of the AVL tree to get all submissions
     function getAllSubmissions() public view returns (SubmissionAVLTree.SubmissionInfo[] memory) {
         return submissionTree.inOrderTraversal();
     }
 
+    //function to allow funders to add funds to the contract
     function addFunds() public payable {
         require(msg.value > 0, "You must send some funds");
             funders[msg.sender] += msg.value;
@@ -219,6 +220,7 @@ function addSubmission(address submitter, string memory submissionText, uint256 
     unused_admin_votes = 0;
 }
 
+//Allows users to withdraw funds that they have voted for but did not cross threshhold
 function claimRefund(address recipient) public {
     // Make sure to add necessary require statements for authorization and timing
     require(admins[msg.sender] == true, "You are not an admin");
@@ -244,6 +246,7 @@ function claimRefund(address recipient) public {
     emit RefundInfo(totalRefundAmount, total_funds);
 }
 
+//Simple view functions to check the refund amount
 function check_refund_amount(address recipient) public view returns (uint256 _refundAmount) {
     require(admins[msg.sender] == true, "You are not an admin");
     require(block.timestamp > voting_time, "Voting period has not ended");
