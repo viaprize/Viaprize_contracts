@@ -85,11 +85,10 @@ Requirements
 
 # To-Do
 
- + Update submission and voting period: Implement a method to update the submission and voting period to make it more flexible and dynamic.
- + Support for Dominant Assurance: Each submission should have a custom donation threshold that must be crossed for the submission to be considered.
- + Implement a refund mechanism for users if the threshold is not met (minus gas/network fees). Payout to the submission if the threshold is crossed.
- + Remove admin control: Make the contract unstoppable by removing admin restrictions on submission and other functions, relying on a decentralized governance model.
  + Contract Audit: Conduct a thorough smart contract audit to ensure security and reliability.
+ + Remove admin control: Make the contract unstoppable by removing admin restrictions on submission and other functions, relying on a decentralized governance model.
+ + add support for GitcoinPassport 
+
 
 Solidity ^0.8.0
 Web3.js or Ethers.js for frontend interaction (optional)
