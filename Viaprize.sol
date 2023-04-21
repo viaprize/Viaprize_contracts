@@ -17,9 +17,9 @@ import "./SubmissionAVLTree.sol";
 ·················|···························|·············|·············|·············|···············|··············
 |  YourContract  ·  change_vote              ·          -  ·          -  ·     155682  ·            1  ·          -  │
 ·················|···························|·············|·············|·············|···············|··············
-|  YourContract  ·  claimRefund              ·          -  ·          -  ·     122865  ·            1  ·          -  │
+|  YourContract  ·  claimRefund              ·          -  ·          -  ·     122820  ·            1  ·          -  │
 ·················|···························|·············|·············|·············|···············|··············
-|  YourContract  ·  end_submission_period    ·          -  ·          -  ·      23750  ·            7  ·          -  │
+|  YourContract  ·  end_submission_period    ·          -  ·          -  ·      23728  ·            7  ·          -  │
 ·················|···························|·············|·············|·············|···············|··············
 |  YourContract  ·  end_voting_period        ·      98752  ·     128846  ·     111425  ·            3  ·          -  │
 ·················|···························|·············|·············|·············|···············|··············
@@ -33,7 +33,7 @@ import "./SubmissionAVLTree.sol";
 ·············································|·············|·············|·············|···············|··············
 |  SubmissionAVLTree                         ·          -  ·          -  ·    1340421  ·        4.5 %  ·          -  │
 ·············································|·············|·············|·············|···············|··············
-|  YourContract                              ·    1834013  ·    1834025  ·    1834024  ·        6.1 %  ·          -  │
+|  YourContract                              ·    1780893  ·    1780905  ·    1780904  ·        5.9 %  ·          -  │
 ·--------------------------------------------|-------------|-------------|-------------|---------------|-------------·
 */
 
@@ -328,16 +328,4 @@ contract YourContract {
         
     }
 
-
-    /// @notice create function for admins to withdraw funds to the platform
-    function withdraw_platform_funds() public {
-            if(admins[msg.sender] == false) revert NotAdmin();
-            if (block.timestamp < voting_time) revert VotingPeriodNotActive();
-            if (distributed == true) revert RewardsAlreadyDistributed();
-
-            /// @notice transfer any dust or balance to platform 
-            uint256 platform_balance = address(this).balance;
-
-            payable(PLATFORM_ADDRESS).transfer(platform_balance);
-        }
 }
