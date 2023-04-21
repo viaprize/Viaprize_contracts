@@ -4,112 +4,68 @@ pragma solidity ^0.8.0;
 import "./SubmissionAVLTree.sol";
 
 /* 
-  YourContract
-    Deployment
-      ✓ Should set the right owner
-    Functions
-      ✓ Should add funds and update total_funds
-      ✓ Should allow admin to start and end submission period
-      ✓ Should allow admin to start voting period
-      ✓ Should allow users to add submissions
-      ✓ Should allow users to vote on submissions and update their votes
-      ✓ Should distribute rewards to funded submissions and platform
-      ✓ Should allow users to claim refunds for unfunded submissions and unused votes
-      ✓ Should withdraw platform funds after distributing rewards
-      ✓ Should not allow a user to vote with more funds than they have
-      ✓ Should not allow a user to change someone else's votes
-
-·--------------------------------------------|----------------------------|-------------|-----------------------------·
-|            Solc version: 0.8.17            ·  Optimizer enabled: false  ·  Runs: 200  ·  Block limit: 30000000 gas  │
-·············································|····························|·············|······························
-|  Methods                                                                                                            │
-·················|···························|··············|·············|·············|···············|··············
-|  Contract      ·  Method                   ·  Min         ·  Max        ·  Avg        ·  # calls      ·  usd (avg)  │
-·················|···························|··············|·············|·············|···············|··············
-|  YourContract  ·  addFunds                 ·           -  ·          -  ·     134712  ·            7  ·          -  │
-·················|···························|··············|·············|·············|···············|··············
-|  YourContract  ·  addSubmission            ·      138404  ·     141348  ·     139093  ·            9  ·          -  │
-·················|···························|··············|·············|·············|···············|··············
-|  YourContract  ·  change_vote              ·           -  ·          -  ·     163651  ·            1  ·          -  │
-·················|···························|··············|·············|·············|···············|··············
-|  YourContract  ·  claimRefund              ·           -  ·          -  ·     123457  ·            1  ·          -  │
-·················|···························|··············|·············|·············|···············|··············
-|  YourContract  ·  end_submission_period    ·           -  ·          -  ·      23793  ·            7  ·          -  │
-·················|···························|··············|·············|·············|···············|··············
-|  YourContract  ·  end_voting_period        ·       83125  ·     111350  ·      95275  ·            3  ·          -  │
-·················|···························|··············|·············|·············|···············|··············
-|  YourContract  ·  start_submission_period  ·           -  ·          -  ·      46534  ·            9  ·          -  │
-·················|···························|··············|·············|·············|···············|··············
-|  YourContract  ·  start_voting_period      ·           -  ·          -  ·      48594  ·            7  ·          -  │
-·················|···························|··············|·············|·············|···············|··············
-|  YourContract  ·  vote                     ·      204352  ·     227610  ·     217670  ·            7  ·          -  │
-·················|···························|··············|·············|·············|···············|··············
-|  Deployments                               ·                                          ·  % of limit   ·             │
-·············································|··············|·············|·············|···············|··············
-|  SubmissionAVLTree                         ·           -  ·          -  ·    1823038  ·        6.1 %  ·          -  │
-·············································|··············|·············|·············|···············|··············
-|  YourContract                              ·     3154961  ·    3154973  ·    3154972  ·       10.5 %  ·          -  │
-·--------------------------------------------|--------------|-------------|-------------|---------------|-------------·
+·--------------------------------------------|---------------------------|-------------|-----------------------------·
+|            Solc version: 0.8.17            ·  Optimizer enabled: true  ·  Runs: 200  ·  Block limit: 30000000 gas  │
+·············································|···························|·············|······························
+|  Methods                                                                                                           │
+·················|···························|·············|·············|·············|···············|··············
+|  Contract      ·  Method                   ·  Min        ·  Max        ·  Avg        ·  # calls      ·  usd (avg)  │
+·················|···························|·············|·············|·············|···············|··············
+|  YourContract  ·  addFunds                 ·          -  ·          -  ·      88122  ·            7  ·          -  │
+·················|···························|·············|·············|·············|···············|··············
+|  YourContract  ·  addSubmission            ·     156299  ·     159237  ·     156987  ·            9  ·          -  │
+·················|···························|·············|·············|·············|···············|··············
+|  YourContract  ·  change_vote              ·          -  ·          -  ·     155682  ·            1  ·          -  │
+·················|···························|·············|·············|·············|···············|··············
+|  YourContract  ·  claimRefund              ·          -  ·          -  ·     122865  ·            1  ·          -  │
+·················|···························|·············|·············|·············|···············|··············
+|  YourContract  ·  end_submission_period    ·          -  ·          -  ·      23750  ·            7  ·          -  │
+·················|···························|·············|·············|·············|···············|··············
+|  YourContract  ·  end_voting_period        ·      98752  ·     128846  ·     111425  ·            3  ·          -  │
+·················|···························|·············|·············|·············|···············|··············
+|  YourContract  ·  start_submission_period  ·          -  ·          -  ·      46031  ·            9  ·          -  │
+·················|···························|·············|·············|·············|···············|··············
+|  YourContract  ·  start_voting_period      ·          -  ·          -  ·      48046  ·            7  ·          -  │
+·················|···························|·············|·············|·············|···············|··············
+|  YourContract  ·  vote                     ·     133606  ·     156329  ·     146542  ·            7  ·          -  │
+·················|···························|·············|·············|·············|···············|··············
+|  Deployments                               ·                                         ·  % of limit   ·             │
+·············································|·············|·············|·············|···············|··············
+|  SubmissionAVLTree                         ·          -  ·          -  ·    1340421  ·        4.5 %  ·          -  │
+·············································|·············|·············|·············|···············|··············
+|  YourContract                              ·    1834013  ·    1834025  ·    1834024  ·        6.1 %  ·          -  │
+·--------------------------------------------|-------------|-------------|-------------|---------------|-------------·
 */
 
 contract YourContract {
-
-    /// @notice this will be the time that the submission period ends
-    uint256 submission_time;
-
+    /// @notice this will be the total amount of funds raised
+    uint256 public total_funds; 
+    /// @notice this will be the total amount of rewards available
+    uint256 public total_rewards; 
+    /// @notice this will be the total amount of rewards available for the platform
+    uint256 public platform_reward;
+    /// @notice bool to check if rewards have been distributed with end_voting_period
+    bool public distributed;
     /// @notice this will be the time that the voting period ends
     uint256 voting_time; 
-
+    /// @notice this will be the time that the submission period ends
+    uint256 submission_time;
+    /// @notice  this will be a mapping of the addresses of the admins to a boolean value of true or false
+    mapping (address => bool) public admins; 
     /// @notice this will be a mapping of the addresses of the funders to the amount of eth they have contributed
     mapping (address => uint256) public funders;
-
-    /// @notice this will be a mapping of the addresses of the funders to the amount of votes they have
-    mapping (address => mapping(uint256 => uint256)) public votes; 
+    /// @notice Add a new mapping to store each funder's votes on each submission
+    mapping(address => mapping(bytes32 => uint256)) public funderVotes;
+    /// @notice Add a new mapping to check if a funder has received their refunds
+    mapping(bytes32 => mapping(address => bool)) public refunded;
+    /// @notice add a new refund mapping for address to bool
+    mapping(address => bool) public addressRefunded;
 
     /// @notice this will be the address of the platform
     address public constant PLATFORM_ADDRESS = 0xcd258fCe467DDAbA643f813141c3560FF6c12518; 
 
-    /// @notice this will be an array of the addresses of the funders making it easier to iterate through them
-    address[] public funderAddresses; 
-
-    bytes32[] public thresholdCrossedSubmissions = new bytes32[](0);
-
-    /// @notice  this will be a mapping of the addresses of the admins to a boolean value of true or false
-    mapping (address => bool) public admins; 
-
-    /// @notice this will be the total amount of funds raised
-    uint256 public total_funds; 
-
-    /// @notice this will be the total amount of rewards available
-    uint256 public total_rewards; 
-
-    /// @notice this will be the total amount of rewards available for the platform
-    uint256 public platform_reward;
-
-    /// @notice bool to check if rewards have been distributed with end_voting_period
-    bool public distributed;
-
     /// @notice / @notice submissionTree contract
     SubmissionAVLTree private submissionTree;
-
-    /// @notice Add a new mapping to store each funder's votes on each submission
-    mapping(address => mapping(bytes32 => uint256)) public funderVotes;
-
-    /// @notice Add a new mapping to check if a funder has received their refunds
-    mapping(bytes32 => mapping(address => bool)) public refunded;
-
-    /// @notice add a new refund mapping for address to bool
-    mapping(address => bool) public addressRefunded;
-
-    
-    /// @notice events - Refund / Fund / Vote / Change Vote / Submission
-    event RefundInfo(uint256 refundAmount, address recipient);
-    event FundInfo(uint256 fundAmount, address funder);
-    event VoteInfo(address voter, uint256 voteAmount, bytes32 submissionHash);
-    event ChangeVoteInfo(address voter, uint256 voteAmount, bytes32 submissionHash, bytes32 oldSubmissionHash);
-    event SubmissionMade(bytes32 submissionHash, address submitter, uint256 threshhold);
-    event UnusedVotesRefunded(address indexed user, uint256 refundAmount);
-
 
     // Errors
 
@@ -225,24 +181,13 @@ contract YourContract {
         payable(PLATFORM_ADDRESS).transfer(_send_platform_reward);
     }
 
-    /// @notice update threshhold
-    function updateThresholdStatus(bytes32 _submissionHash) internal {
-        SubmissionAVLTree.SubmissionInfo memory submission = submissionTree.getSubmission(_submissionHash);
-        if (!submission.funded && submission.votes >= submission.threshhold) {
-        submissionTree.setThresholdCrossed(_submissionHash, true);
-        thresholdCrossedSubmissions.push(_submissionHash);
-    }
-    }
-
     /// @notice addSubmission should return the submissionHash
     function addSubmission(address submitter, string memory submissionText, uint256 threshold) public returns (bytes32) {
-    if (block.timestamp > submission_time) revert SubmissionPeriodNotActive();
-    bytes32 submissionHash = keccak256(abi.encodePacked(submitter, submissionText));
-    submissionTree.add_submission(submitter, submissionHash, submissionText, threshold);
+        if (block.timestamp > submission_time) revert SubmissionPeriodNotActive();
+        bytes32 submissionHash = keccak256(abi.encodePacked(submitter, submissionText));
+        submissionTree.add_submission(submitter, submissionHash, submissionText, threshold);
 
-    emit SubmissionMade(submissionHash, submitter, threshold);
-
-    return submissionHash;
+        return submissionHash;
     }
 
     /// @notice create a function to allow funders to vote for a submission
@@ -252,7 +197,6 @@ contract YourContract {
         if (amount > funders[msg.sender]) revert NotEnoughFunds();
 
         funders[msg.sender] -= amount;
-
         SubmissionAVLTree.SubmissionInfo memory submissionCheck = submissionTree.getSubmission(_submissionHash);
         /// @notice submission should return a struct with the submissionHash, the submitter, the submissionText, the threshhold, the votes, and the funded status 
         //  -- check if the submission hash is in the tree
@@ -260,17 +204,14 @@ contract YourContract {
 
         submissionTree.addVotes(_submissionHash, amount);
         funderVotes[msg.sender][_submissionHash] += amount;
-
         submissionTree.updateFunderBalance(_submissionHash, msg.sender, (funderVotes[msg.sender][_submissionHash]*95)/100);
-
-
 
         SubmissionAVLTree.SubmissionInfo memory submission = submissionTree.getSubmission(_submissionHash);
         if (submission.votes >= submission.threshhold) {
         submissionTree.setThresholdCrossed(_submissionHash, true);
         }
 
-        emit VoteInfo(msg.sender, amount, _submissionHash);
+
     }
 
     /// @notice Change_votes should now stop folks from being able to change someone elses vote
@@ -297,7 +238,7 @@ contract YourContract {
             submissionTree.setThresholdCrossed(_new_submissionHash, true);
         }
 
-        emit ChangeVoteInfo(msg.sender, amount, _previous_submissionHash, _new_submissionHash);
+
         }
 
     /// @notice uses functionality of the AVL tree to get all submissions
@@ -310,14 +251,13 @@ contract YourContract {
         if (msg.value == 0) revert NotEnoughFunds();
             funders[msg.sender] += msg.value;
             total_funds += msg.value;
-            funderAddresses.push(msg.sender);
             total_rewards += (msg.value * 95) / 100; /// @notice  95% of the funds will be used
 
-            emit FundInfo(msg.value, msg.sender);
+
     }
 
     receive () external payable {
-    addFunds();
+        addFunds();
     }
 
     /// @notice create function to allow admins to withdraw funds to the submission winners and the platform but do not iterate through an unknown length array
@@ -365,7 +305,7 @@ contract YourContract {
         total_funds -= totalRefundAmount;
         payable(recipient).transfer(totalRefundAmount);
 
-        emit RefundInfo(totalRefundAmount, msg.sender);
+
     }      
 
     /// @notice Simple view functions to check the refund amount

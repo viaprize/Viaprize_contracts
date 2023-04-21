@@ -5,19 +5,11 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract SubmissionAVLTree {
 
+    mapping(bytes32 => mapping(address => uint256)) public submissionFunderBalances;
 
-
-    mapping (address => bool) public admins; 
-
-    mapping(bytes32 => mapping(address => uint256)) public submissionFunderBalances; //is equal to funderVotes for testing purposes
-
-    address[] public funderAddresses; 
-    mapping(address => bool) public hasFunded; //bool may not be required 
-
-
-//Struct for submission info in addition to parameters used by AVL tree
     struct SubmissionInfo {
         bytes32 submissionHash;
+        string submissionText;
         uint256 votes;
         address submitter;
         uint256 threshhold;
@@ -27,14 +19,9 @@ contract SubmissionAVLTree {
         uint256 right;
     }
 
-
-
-
-//Array of submissions and root of AVL tree
     SubmissionInfo[] public submissions;
     uint256 public root;
 
-    //AVL tree functions
     function height(uint256 node) private view returns (int256) {
         if (node == 0) {
             return -1;
@@ -92,10 +79,9 @@ contract SubmissionAVLTree {
         return node;
     }
 
-    //Adding a submission to the AVL tree
     function add_submission(address submitter, bytes32 submissionHash, string memory submissionText, uint256 threshold) external {
         uint256 newNodeIndex = submissions.length;
-        submissions.push(SubmissionInfo(submissionHash, 0, submitter, threshold, false, 0, 0, 0));
+        submissions.push(SubmissionInfo(submissionHash, submissionText, 0, submitter, threshold, false, 0, 0, 0));
 
         if (newNodeIndex == 0) {
             root = newNodeIndex;
@@ -104,18 +90,10 @@ contract SubmissionAVLTree {
         }
     }
 
-    //Updating the funder balance for a submission
-    function updateFunderBalance(bytes32 _submissionHash, address funder, uint256 balances) public {
+    function updateFunderBalance(bytes32 _submissionHash, address funder, uint256 balances) external {
     submissionFunderBalances[_submissionHash][funder] = balances;
-    if (!hasFunded[funder]) {
-        funderAddresses.push(funder);
-        hasFunded[funder] = true;
-    }
 }
 
-
-
-    //AVL tree function
     function insert(uint256 node, uint256 newNode) private returns (uint256) {
         if (node == 0) {
             return newNode;
@@ -133,7 +111,6 @@ contract SubmissionAVLTree {
         return balance(node);
     }
 
-    //Finder function to find submission by hash bytes32
     function findSubmission(bytes32 submissionHash) public view returns (uint256) {
         return find(root, submissionHash);
     }
@@ -144,12 +121,10 @@ contract SubmissionAVLTree {
         return submissions[node];
     }
 
-    //get all submissions and return memory struct
     function getAllSubmissions () public view returns (SubmissionInfo[] memory) {
         return submissions;
     }
 
-    //AVL tree function to find submission by hash bytes32 and uint256 node
     function find(uint256 node, bytes32 submissionHash) private view returns (uint256) {
         if (node == 0) {
             return 0;
@@ -167,35 +142,41 @@ contract SubmissionAVLTree {
     }
 
     //thresholdCrossed is a function that returns true if the number of votes is greater than or equal to the threshold, and takes in a submissionhash
-    function thresholdCrossed(bytes32 submissionHash) public view returns (bool) {
+    function thresholdCrossed(bytes32 submissionHash) external view returns (bool) {
         uint256 node = find(root, submissionHash);
         return submissions[node].votes >= submissions[node].threshhold;
     }
 
     //setThresholdCrossed also takes in a submissionhash and sets the funded boolean to true
-    function setThresholdCrossed(bytes32 submissionHash, bool status) public {
+    function setThresholdCrossed(bytes32 submissionHash, bool status) external {
         uint256 node = find(root, submissionHash);
         submissions[node].funded = status;
     }
 
-    //addVotes and subVotes are functions that add and subtract votes from a submission
-    function addVotes(bytes32 submissionHash, uint256 votes) public {
+    function addVotes(bytes32 submissionHash, uint256 votes) external {
         uint256 node = find(root, submissionHash);
+        unchecked {
         submissions[node].votes += votes;
+        }
     }
 
-    function subVotes(bytes32 submissionHash, uint256 votes) public {
+    function subVotes(bytes32 submissionHash, uint256 votes) external {
         uint256 node = find(root, submissionHash);
+        unchecked {
         submissions[node].votes -= votes;
+        }
     }
 
-    //function to get the number of submissions by navigating the AVL tree
+
     function inOrderTraversal() public view returns (SubmissionInfo[] memory) {
         bytes32[] memory submissionHashes = new bytes32[](submissions.length);
         inOrderTraversalHelper(root, submissionHashes, 0);
         SubmissionInfo[] memory submissionInfo = new SubmissionInfo[](submissions.length);
-        for (uint256 i = 0; i < submissions.length; i++) {
+        for (uint256 i = 0; i < submissions.length;) {
             submissionInfo[i] = submissions[find(root, submissionHashes[i])];
+            unchecked {
+                i++;
+            }
         }
         return submissionInfo;
     }
@@ -212,13 +193,5 @@ contract SubmissionAVLTree {
         index++;
         inOrderTraversalHelper(submissions[node].right, submissionHashes, index);
     }
-
-    //getByindex should return memory
-    function getByIndex(uint256 index) public view returns (SubmissionInfo memory) {
-        return submissions[index];
-    }
-
-
-
 
 }
