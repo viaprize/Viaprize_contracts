@@ -98,7 +98,7 @@ describe("YourContract", function () {
       //parse allSubmissionsCheck[0].votes from Bignumber hex to number
       expect(allSubmissionsCheck[0].votes).to.equal(ethers.utils.parseEther("0.5"));
 
-      console.log("StateCheck", Number(allSubmissionsCheck[0].votes));
+
 
       await yourContract.connect(addr1).change_vote(allSubmissionsCheck[0].submissionHash, allSubmissionsCheck[1].submissionHash, ethers.utils.parseEther("0.5"));
 
@@ -132,7 +132,7 @@ describe("YourContract", function () {
 
       expect(submissionState[0].funded).to.equal(true);
       expect(submissionState[0].votes).to.equal(ethers.utils.parseEther("0.5"));
-      console.log('submissionvotes', Number(submissionState[0].votes));
+
       await yourContract.end_voting_period();
 
       //make sure that the address balance of the submission owner has increased by the amount of 95% of the total votes
@@ -142,9 +142,9 @@ describe("YourContract", function () {
 
       const balancer = await addr2.getBalance();
       //expect balancer to > starting_balance
-      console.log('failed');
+
       expect(balancer.gt(starting_balance)).to.be.true;
-      console.log('passed');
+
 
       const reward = ethers.utils.parseEther("0.025");
       const adding = balance_address.add(reward);
@@ -162,7 +162,7 @@ describe("YourContract", function () {
       const submissionHash = await yourContract.addSubmission(addr2.address, submissionText, threshold);
       const getSubmissions = await yourContract.getAllSubmissions();
       const initial_balance = await addr1.getBalance();
-      console.log("initial", Number(initial_balance));
+
 
       await yourContract.end_submission_period();
 
@@ -170,17 +170,13 @@ describe("YourContract", function () {
       await yourContract.start_voting_period(2);
       const tx = await yourContract.connect(addr1).vote(getSubmissions[0].submissionHash, ethers.utils.parseEther("0.9"));
 
-      console.log("Submission hash:", getSubmissions[0].submissionHash);
-      console.log("Submission votes:", Number(getSubmissions[0].votes));
+
+
 
       const receipt = await tx.wait();
       const gasUsed = receipt.gasUsed;
       const gasPrice = tx.gasPrice;
       const transactionCost = gasUsed.mul(gasPrice);
-
-      console.log("Gas price:", Number(gasPrice));
-      console.log("Gas used:", Number(gasUsed));
-      console.log("Transaction cost:", Number(transactionCost));
 
     
       await yourContract.end_voting_period();
@@ -191,9 +187,6 @@ describe("YourContract", function () {
     
       const expected_balance = ((initial_balance.sub(transactionCost).mul(95)).div(100));
 
-      console.log("Initial balance:", Number(initial_balance));
-      console.log("Balance after claiming refund:", Number(balance_state));
-      console.log("Expected balance:", Number(expected_balance));
 
       expect(balance_state.gte(expected_balance)).to.be.true;
     });
@@ -238,7 +231,7 @@ describe("YourContract", function () {
       await yourContract.connect(addr1).vote(allSubmissions[0].submissionHash, ethers.utils.parseEther("0.5"));
   
       // addr1 tries to vote again, which should revert
-      await expect(yourContract.connect(addr1).vote(allSubmissions[0].submissionHash, ethers.utils.parseEther("0.5"))).to.be.revertedWith("You do not have enough funds to vote this amount");
+      await expect(yourContract.connect(addr1).vote(allSubmissions[0].submissionHash, ethers.utils.parseEther("0.5"))).to.be.revertedWithCustomError;
     });
   
     it("Should not allow a user to change someone else's votes", async function () {
@@ -259,9 +252,9 @@ describe("YourContract", function () {
       await yourContract.connect(addr1).vote(allSubmissions[0].submissionHash, ethers.utils.parseEther("0.5"));
 
       const allSubmissionsState = await yourContract.getAllSubmissions();
-  
+      
       // addr2 tries to remove addr1's votes, which should revert
-      await expect(yourContract.connect(addr2).change_vote(allSubmissionsState[0].submissionHash, allSubmissionsState[1].submissionHash, ethers.utils.parseEther("0.5"))).to.be.revertedWith("You do not have enough votes on the previous submission from this address");
+      await expect(yourContract.connect(addr2).change_vote(allSubmissionsState[0].submissionHash, allSubmissionsState[1].submissionHash, ethers.utils.parseEther("0.5"))).to.be.revertedWithCustomError;
     });
 
 

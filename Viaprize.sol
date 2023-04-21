@@ -1,154 +1,256 @@
-// SPDX-License-Identifier: MIT
+/// @notice  SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 import "./SubmissionAVLTree.sol";
 
+/*  12 Tests Passing
+
+    ✓ listens for RefundInfo event
+    Deployment
+      ✓ Should set the right owner
+    Functions
+      ✓ Should add funds and update total_funds
+      ✓ Should allow admin to start and end submission period
+      ✓ Should allow admin to start voting period
+      ✓ Should allow users to add submissions
+      ✓ Should allow users to vote on submissions and update their votes
+      ✓ Should distribute rewards to funded submissions and platform
+      ✓ Should allow users to claim refunds for unfunded submissions
+      ✓ Should withdraw platform funds after distributing rewards
+      ✓ Should not allow a user to vote with more funds than they have
+      ✓ Should not allow a user to change someone else's votes
+
+·--------------------------------------------|----------------------------|-------------|-----------------------------·
+|            Solc version: 0.8.17            ·  Optimizer enabled: false  ·  Runs: 200  ·  Block limit: 30000000 gas  │
+·············································|····························|·············|······························
+|  Methods                                                                                                            │
+·················|···························|··············|·············|·············|···············|··············
+|  Contract      ·  Method                   ·  Min         ·  Max        ·  Avg        ·  # calls      ·  usd (avg)  │
+·················|···························|··············|·············|·············|···············|··············
+|  YourContract  ·  addFunds                 ·           -  ·          -  ·     134712  ·            7  ·          -  │
+·················|···························|··············|·············|·············|···············|··············
+|  YourContract  ·  addSubmission            ·      138404  ·     141348  ·     139093  ·            9  ·          -  │
+·················|···························|··············|·············|·············|···············|··············
+|  YourContract  ·  change_vote              ·           -  ·          -  ·     163628  ·            1  ·          -  │
+·················|···························|··············|·············|·············|···············|··············
+|  YourContract  ·  claimRefund              ·       44280  ·     102291  ·      73286  ·            2  ·          -  │
+·················|···························|··············|·············|·············|···············|··············
+|  YourContract  ·  end_submission_period    ·           -  ·          -  ·      23793  ·            7  ·          -  │
+·················|···························|··············|·············|·············|···············|··············
+|  YourContract  ·  end_voting_period        ·       83132  ·     111357  ·      95282  ·            3  ·          -  │
+·················|···························|··············|·············|·············|···············|··············
+|  YourContract  ·  start_submission_period  ·           -  ·          -  ·      46534  ·            9  ·          -  │
+·················|···························|··············|·············|·············|···············|··············
+|  YourContract  ·  start_voting_period      ·           -  ·          -  ·      48594  ·            7  ·          -  │
+·················|···························|··············|·············|·············|···············|··············
+|  YourContract  ·  vote                     ·      204352  ·     227610  ·     217670  ·            7  ·          -  │
+·················|···························|··············|·············|·············|···············|··············
+|  Deployments                               ·                                          ·  % of limit   ·             │
+·············································|··············|·············|·············|···············|··············
+|  SubmissionAVLTree                         ·           -  ·          -  ·    1823038  ·        6.1 %  ·          -  │
+·············································|··············|·············|·············|···············|··············
+|  YourContract                              ·           -  ·          -  ·    3007753  ·         10 %  ·          -  │
+·--------------------------------------------|--------------|-------------|-------------|---------------|-------------·
+*/
+
 
 contract YourContract {
 
-    uint256 submission_time; //this will be the time that the submission period ends
-    uint256 voting_time; //this will be the time that the voting period ends
+    /// @notice this will be the time that the submission period ends
+    uint256 submission_time;
 
-    mapping (address => uint256) public funders; //this will be a mapping of the addresses of the funders to the amount of eth they have contributed
+    /// @notice this will be the time that the voting period ends
+    uint256 voting_time; 
 
-    mapping (address => mapping(uint256 => uint256)) public votes; //this will be a mapping of the addresses of the funders to the amount of votes they have
+    /// @notice this will be a mapping of the addresses of the funders to the amount of eth they have contributed
+    mapping (address => uint256) public funders;
 
-    address public constant PLATFORM_ADDRESS = 0xcd258fCe467DDAbA643f813141c3560FF6c12518; //this will be the address of the platform
+    /// @notice this will be a mapping of the addresses of the funders to the amount of votes they have
+    mapping (address => mapping(uint256 => uint256)) public votes; 
 
-    address[] public funderAddresses; //this will be an array of the addresses of the funders making it easier to iterate through them
+    /// @notice this will be the address of the platform
+    address public constant PLATFORM_ADDRESS = 0xcd258fCe467DDAbA643f813141c3560FF6c12518; 
 
-    bytes32[] public thresholdCrossedSubmissions; //this will be an array of the submissions that have crossed the threshold
+    /// @notice this will be an array of the addresses of the funders making it easier to iterate through them
+    address[] public funderAddresses; 
 
-    mapping (address => bool) public admins; //this will be a mapping of the addresses of the admins to a boolean value of true or false
+    bytes32[] public thresholdCrossedSubmissions;
 
-    uint256 public total_funds; //this will be the total amount of funds raised
+    /// @notice  this will be a mapping of the addresses of the admins to a boolean value of true or false
+    mapping (address => bool) public admins; 
 
-    uint256 public total_rewards; //this will be the total amount of rewards available
+    /// @notice this will be the total amount of funds raised
+    uint256 public total_funds; 
 
-    uint256 public platform_reward; //this will be the amount of rewards that the platform will receive
+    /// @notice this will be the total amount of rewards available
+    uint256 public total_rewards; 
 
-    bool public distributed; //this will be a boolean value of true or false to determine if the rewards have been distributed
+    /// @notice this will be the total amount of rewards available for the platform
+    uint256 public platform_reward;
 
+    /// @notice bool to check if rewards have been distributed with end_voting_period
+    bool public distributed;
 
-    SubmissionAVLTree private submissionTree; //this will be the submission tree coming from the SubmissionAVLTree contract
+    /// @notice / @notice submissionTree contract
+    SubmissionAVLTree private submissionTree;
 
-    // Add a new mapping to store each funder's votes on each submission
-    mapping(address => mapping(bytes32 => uint256)) public funderVotes; 
+    /// @notice Add a new mapping to store each funder's votes on each submission
+    mapping(address => mapping(bytes32 => uint256)) public funderVotes;
 
-    mapping(bytes32 => mapping(address => bool)) public refunded; //this will be a mapping of the submissions to the addresses of the funders to a boolean value of true or false to determine if they have been refunded
+    /// @notice Add a new mapping to check if a funder has received their refunds
+    mapping(bytes32 => mapping(address => bool)) public refunded;
 
     
-    //events
-    event DebugDistributeRewards(uint256 indexed totalRewards, uint256 indexed votes);
-
+    /// @notice events - Refund / Fund / Vote / Change Vote / Submission
     event RefundInfo(uint256 refundAmount, uint256 totalRefundAmount);
+    event FundInfo(uint256 fundAmount, address funder);
+    event VoteInfo(address voter, uint256 voteAmount, bytes32 submissionHash);
+    event ChangeVoteInfo(address voter, uint256 voteAmount, bytes32 submissionHash, bytes32 oldSubmissionHash);
+    event SubmissionMade(bytes32 submissionHash, address submitter, uint256 threshhold);
 
 
+    // Errors
+
+    /// @notice not admin error
+    error NotAdmin();
+
+    /// @notice error for not enough funds to vote
+    error NotEnoughFunds();
+
+    /// @notice error for trying to change someone elses vote
+    error NotYourVote();
+
+    /// @notice error for trying to claim a refund again
+    error RefundAlreadyClaimed();
+
+    /// @notice error for trying to claim a nonexistent refund
+    error RefundDoesntExist();
+
+    /// @notice if distribution has already happened
+    error RewardsAlreadyDistributed();
+
+    /// @notice error for a submission that has already been made
+    error SubmissionAlreadyMade();
+
+    /// @notice error for trying to vote on a submission that has not been made
+    error SubmissionDoesntExist();
+
+    /// @notice error for when the submission period is not active
+    error SubmissionPeriodActive();
+
+    /// @notice error for when the submission period is not active
+    error SubmissionPeriodNotActive();
+
+    /// @notice error for when the voting period is not active
+    error VotingPeriodNotActive();
+
+    /// @notice error for trying to claim a refund when the voting period is still active
+    error VotingPeriodActive();
 
 
     constructor(address submissionContract) {
-        //add as many admins as you need to -- replace msg.sender with the address of the admin(s) for now this means the deployer will be the sole admin
+        /// @notice add as many admins as you need to -- replace msg.sender with the address of the admin(s) for now this means the deployer will be the sole admin
         admins[msg.sender] = true;
         admins[0xcd258fCe467DDAbA643f813141c3560FF6c12518] = true;
-        // Initialize the submissionTree
+        /// @notice  Initialize the submissionTree
         submissionTree = SubmissionAVLTree(submissionContract); 
     }
 
-
-        //create a function to start the submission period
+    /// @notice create a function to start the submission period
     function start_submission_period(uint256 _submission_time) public {
-        require(admins[msg.sender] == true, "You are not an admin");
+        if(admins[msg.sender] == false) revert NotAdmin();
+
+        /// @notice submission time will be in days
         submission_time = block.timestamp + _submission_time * 1 days;
-        //submission time will be in days
+     
     }
 
-    //getter for submission time
+    /// @notice getter for submission time
     function get_submission_time() public view returns (uint256) {
         return submission_time;
     }
 
-    //getter for voting time
+    /// @notice getter for voting time
     function get_voting_time() public view returns (uint256) {
         return voting_time;
     }
 
-    //end the submission period
+    /// @notice end the submission period
     function end_submission_period() public {
-        require(admins[msg.sender] == true, "You are not an admin");
-        submission_time = 0;
+        if(admins[msg.sender] == false) revert NotAdmin();
+            submission_time = 0;
     }
 
-    //start the voting period
+    /// @notice start the voting period
     function start_voting_period(uint256 _voting_time) public {
-        require(admins[msg.sender] == true, "You are not an admin");
-        require (block.timestamp > submission_time, "Submission period has not ended");
+        if(admins[msg.sender] == false) revert NotAdmin();
+        if(block.timestamp < submission_time) revert SubmissionPeriodActive();
+
+        /// @notice voting time also in days
         voting_time = block.timestamp + _voting_time * 1 days;
-        //voting time also in days
-    }
 
-    //end the voting period
+    }
+    /// @notice end the voting period
     function end_voting_period() public {
-    require(admins[msg.sender] == true, "You are not an admin");
-    voting_time = 0;
-    distributeRewards();
-
-}
-
-//Distribute rewards
-function distributeRewards() private {
-    require(admins[msg.sender] == true, "You are not an admin");
-    require(distributed == false, "Rewards have already been distributed");
-    SubmissionAVLTree.SubmissionInfo[] memory allSubmissions = getAllSubmissions();
-
-    platform_reward = (total_funds * 5) / 100;
-
-    // Count the number of funded submissions and add them to the fundedSubmissions array
-    for (uint256 i = 0; i < allSubmissions.length; i++) {
-        if (allSubmissions[i].funded) {
-        uint256 reward = (allSubmissions[i].votes * 95) / 100;
-        total_rewards -= reward;
-        payable(allSubmissions[i].submitter).transfer(reward);
-        }
+        if(admins[msg.sender] == false) revert NotAdmin();
+            voting_time = 0;
+            distributeRewards();
     }
 
-    total_rewards = 0;
+    /// @notice Distribute rewards
+    function distributeRewards() private {
+        if(admins[msg.sender] == false) revert NotAdmin();
+        if(distributed == true) revert RewardsAlreadyDistributed();
+            SubmissionAVLTree.SubmissionInfo[] memory allSubmissions = getAllSubmissions();
+            platform_reward = (total_funds * 5) / 100;
+        /// @notice  Count the number of funded submissions and add them to the fundedSubmissions array
+        for (uint256 i = 0; i < allSubmissions.length;) {
+        if (allSubmissions[i].funded) {
+            uint256 reward = (allSubmissions[i].votes * 95) / 100;
+            total_rewards -= reward;
+            payable(allSubmissions[i].submitter).transfer(reward);
+        } 
+        unchecked { ++i; }
+    }
+        total_rewards = 0;
+        /// @notice  Send the platform reward
+        payable(PLATFORM_ADDRESS).transfer(platform_reward);
+        platform_reward = 0;
+        distributed = true;
+    }
 
-    // Send the platform reward
-    payable(PLATFORM_ADDRESS).transfer(platform_reward);
-    platform_reward = 0;
-
-    distributed = true;
-
-}
-
-//update threshhold
-function updateThresholdStatus(bytes32 _submissionHash) internal {
-    SubmissionAVLTree.SubmissionInfo memory submission = submissionTree.getSubmission(_submissionHash);
-    if (!submission.funded && submission.votes >= submission.threshhold) {
+    /// @notice update threshhold
+    function updateThresholdStatus(bytes32 _submissionHash) internal {
+        SubmissionAVLTree.SubmissionInfo memory submission = submissionTree.getSubmission(_submissionHash);
+        if (!submission.funded && submission.votes >= submission.threshhold) {
         submissionTree.setThresholdCrossed(_submissionHash, true);
         thresholdCrossedSubmissions.push(_submissionHash);
     }
-}
+    }
 
-//addSubmission should return the submissionHash
-function addSubmission(address submitter, string memory submissionText, uint256 threshold) public returns (bytes32) {
-    require(block.timestamp < submission_time, "Submission period has ended");
+    /// @notice addSubmission should return the submissionHash
+    function addSubmission(address submitter, string memory submissionText, uint256 threshold) public returns (bytes32) {
+    if (block.timestamp > submission_time) revert SubmissionPeriodNotActive();
     bytes32 submissionHash = keccak256(abi.encodePacked(submitter, submissionText));
     submissionTree.add_submission(submitter, submissionHash, submissionText, threshold);
-    return submissionHash;
-}
 
-    //create a function to allow funders to vote for a submission
-    // Update the vote function
+    emit SubmissionMade(submissionHash, submitter, threshold);
+
+    return submissionHash;
+    }
+
+    /// @notice create a function to allow funders to vote for a submission
+    /// @notice  Update the vote function
     function vote(bytes32 _submissionHash, uint256 amount) public {
-        require(block.timestamp < voting_time, "Voting period has ended");
-        require(amount <= funders[msg.sender], "You do not have enough funds to vote this amount");
+        if (block.timestamp > voting_time) revert VotingPeriodNotActive();
+        if (amount > funders[msg.sender]) revert NotEnoughFunds();
 
         funders[msg.sender] -= amount;
 
         SubmissionAVLTree.SubmissionInfo memory submissionCheck = submissionTree.getSubmission(_submissionHash);
-        //submission should return a struct with the submissionHash, the submitter, the submissionText, the threshhold, the votes, and the funded status -- check if the submission hash is in the tree
-        require(submissionCheck.submissionHash == _submissionHash, "Submission does not exist");
+        /// @notice submission should return a struct with the submissionHash, the submitter, the submissionText, the threshhold, the votes, and the funded status 
+        //  -- check if the submission hash is in the tree
+        if (submissionCheck.submissionHash != _submissionHash) revert SubmissionDoesntExist();
 
         submissionTree.addVotes(_submissionHash, amount);
         funderVotes[msg.sender][_submissionHash] += amount;
@@ -160,123 +262,124 @@ function addSubmission(address submitter, string memory submissionText, uint256 
         SubmissionAVLTree.SubmissionInfo memory submission = submissionTree.getSubmission(_submissionHash);
         if (submission.votes >= submission.threshhold) {
         submissionTree.setThresholdCrossed(_submissionHash, true);
-    }
+        }
+
+        emit VoteInfo(msg.sender, amount, _submissionHash);
     }
 
-    //Change_votes should now stop folks from being able to change someone elses vote
+    /// @notice Change_votes should now stop folks from being able to change someone elses vote
     function change_vote(bytes32 _previous_submissionHash, bytes32 _new_submissionHash, uint256 amount) public {
-        require(block.timestamp < voting_time, "Voting period has ended");
-        require(funderVotes[msg.sender][_previous_submissionHash] >= amount, "You do not have enough votes on the previous submission from this address");
-
+        if (block.timestamp > voting_time) revert VotingPeriodNotActive();
+        if (funderVotes[msg.sender][_previous_submissionHash] < amount) revert NotYourVote();
 
         submissionTree.subVotes(_previous_submissionHash, amount);
         submissionTree.addVotes(_new_submissionHash, amount);
         submissionTree.updateFunderBalance(_previous_submissionHash, msg.sender, (funderVotes[msg.sender][_previous_submissionHash]*95)/100);
         submissionTree.updateFunderBalance(_new_submissionHash, msg.sender, (funderVotes[msg.sender][_new_submissionHash]*95)/100);
-
         funderVotes[msg.sender][_previous_submissionHash] -= amount;
         funderVotes[msg.sender][_new_submissionHash] += amount;
 
         SubmissionAVLTree.SubmissionInfo memory previousSubmission = submissionTree.getSubmission(_previous_submissionHash);
-        if (previousSubmission.votes < previousSubmission.threshhold) {
-        submissionTree.setThresholdCrossed(_previous_submissionHash, false);
 
-        
+        if (previousSubmission.votes < previousSubmission.threshhold) {
+            submissionTree.setThresholdCrossed(_previous_submissionHash, false);
         }
 
         SubmissionAVLTree.SubmissionInfo memory newSubmission = submissionTree.getSubmission(_new_submissionHash);
+
         if (newSubmission.votes >= newSubmission.threshhold) {
-        submissionTree.setThresholdCrossed(_new_submissionHash, true);
-        }
+            submissionTree.setThresholdCrossed(_new_submissionHash, true);
         }
 
-    //uses functionality of the AVL tree to get all submissions
+        emit ChangeVoteInfo(msg.sender, amount, _previous_submissionHash, _new_submissionHash);
+        }
+
+    /// @notice uses functionality of the AVL tree to get all submissions
     function getAllSubmissions() public view returns (SubmissionAVLTree.SubmissionInfo[] memory) {
         return submissionTree.inOrderTraversal();
     }
 
-    //function to allow funders to add funds to the contract
+    /// @notice function to allow funders to add funds to the contract
     function addFunds() public payable {
-        require(msg.value > 0, "You must send some funds");
+        if (msg.value == 0) revert NotEnoughFunds();
             funders[msg.sender] += msg.value;
             total_funds += msg.value;
             funderAddresses.push(msg.sender);
-            total_rewards += (msg.value * 95) / 100; // 95% of the funds will be used
+            total_rewards += (msg.value * 95) / 100; /// @notice  95% of the funds will be used
+
+            emit FundInfo(msg.value, msg.sender);
     }
 
     receive () external payable {
     addFunds();
     }
 
-
-    //create function to allow admins to withdraw funds to the submission winners and the platform but do not iterate through an unknown length array
+    /// @notice create function to allow admins to withdraw funds to the submission winners and the platform but do not iterate through an unknown length array
     function use_unused_votes(bytes32 _submissionHash) public {
-    require(admins[msg.sender] == true, "You are not an admin");
-    require(block.timestamp < voting_time, "Voting period has ended");
+        if(admins[msg.sender] == false) revert NotAdmin();
+        if (block.timestamp > voting_time) revert VotingPeriodNotActive();
 
-
-    uint256 unused_admin_votes = total_funds - total_rewards;
-    submissionTree.addVotes(_submissionHash, unused_admin_votes);
-    unused_admin_votes = 0;
-}
-
-//Allows users to withdraw funds that they have voted for but did not cross threshhold
-function claimRefund(address recipient) public {
-    // Make sure to add necessary require statements for authorization and timing
-    require(admins[msg.sender] == true, "You are not an admin");
-    require(block.timestamp > voting_time, "Voting period has not ended");
-    SubmissionAVLTree.SubmissionInfo[] memory allSubmissions = getAllSubmissions();
-
-    uint256 totalRefundAmount = 0;
-
-    // Count the number of funded submissions and add them to the fundedSubmissions array
-    for (uint256 i = 0; i < allSubmissions.length; i++) {
-        if (!allSubmissions[i].funded) {
-            uint256 refundAmount = submissionTree.submissionFunderBalances(allSubmissions[i].submissionHash, recipient);
-            require(refundAmount > 0, "No refundable amount found");
-            require(!refunded[allSubmissions[i].submissionHash][recipient], "Refund already claimed");
-
-            refunded[allSubmissions[i].submissionHash][recipient] = true;
-            totalRefundAmount += refundAmount;
-        }
+        uint256 unused_admin_votes = total_funds - total_rewards;
+        submissionTree.addVotes(_submissionHash, unused_admin_votes);
+        unused_admin_votes = 0;
     }
 
-    total_funds -= totalRefundAmount;
-    payable(recipient).transfer(totalRefundAmount);
-    emit RefundInfo(totalRefundAmount, total_funds);
-}
+    /// @notice Allows users to withdraw funds that they have voted for but did not cross threshhold
+    function claimRefund(address recipient) public {
 
-//Simple view functions to check the refund amount
-function check_refund_amount(address recipient) public view returns (uint256 _refundAmount) {
-    require(admins[msg.sender] == true, "You are not an admin");
-    require(block.timestamp > voting_time, "Voting period has not ended");
-    SubmissionAVLTree.SubmissionInfo[] memory allSubmissions = getAllSubmissions();
+        if(admins[msg.sender] == false) revert NotAdmin();
+        if(block.timestamp < voting_time) revert VotingPeriodActive();
+        SubmissionAVLTree.SubmissionInfo[] memory allSubmissions = getAllSubmissions();
 
+        uint256 totalRefundAmount = 0;
 
-    // Count the number of funded submissions and add them to the fundedSubmissions array
-    for (uint256 i = 0; i < allSubmissions.length; i++) {
-        if (!allSubmissions[i].funded) {
-            uint256 refundAmount = submissionTree.submissionFunderBalances(allSubmissions[i].submissionHash, recipient);
-            //0.9 Eth to wei
-            return refundAmount;
+        /// @notice  Count the number of funded submissions and add them to the fundedSubmissions array
+        for (uint256 i = 0; i < allSubmissions.length;) {
+            if (!allSubmissions[i].funded) {
+                uint256 refundAmount = submissionTree.submissionFunderBalances(allSubmissions[i].submissionHash, recipient);
+                if (refundAmount == 0) revert RefundDoesntExist();
+                if (refunded[allSubmissions[i].submissionHash][recipient]) revert RefundAlreadyClaimed();
+
+                refunded[allSubmissions[i].submissionHash][recipient] = true;
+                totalRefundAmount += refundAmount;
+            }
+        unchecked { ++i; }
         }
+
+
+        total_funds -= totalRefundAmount;
+        payable(recipient).transfer(totalRefundAmount);
+        emit RefundInfo(totalRefundAmount, total_funds);
+    }      
+
+    /// @notice Simple view functions to check the refund amount
+    function check_refund_amount(address recipient) public view returns (uint256 _refundAmount) {
+        if(admins[msg.sender] == false) revert NotAdmin();
+        if(block.timestamp < voting_time) revert VotingPeriodActive();
+        SubmissionAVLTree.SubmissionInfo[] memory allSubmissions = getAllSubmissions();
+
+
+        /// @notice  Count the number of funded submissions and add them to the fundedSubmissions array
+        for (uint256 i = 0; i < allSubmissions.length;) {
+            if (!allSubmissions[i].funded) {
+                uint256 refundAmount = submissionTree.submissionFunderBalances(allSubmissions[i].submissionHash, recipient);
+                /// @notice 0.9 Eth to wei
+                return refundAmount;
+            }
+        unchecked { ++i; }
+        }
+        
     }
-}
 
-
-
-    //create function for admins to withdraw funds to the platform
+    /// @notice create function for admins to withdraw funds to the platform
     function withdraw_platform_funds() public {
-        require(admins[msg.sender] == true, "You are not an admin");
-        require(block.timestamp > voting_time, "Voting period has not ended");
-        require(distributed == true, "Rewards have not been distributed");
+            if(admins[msg.sender] == false) revert NotAdmin();
+            if (block.timestamp < voting_time) revert VotingPeriodNotActive();
+            if (distributed == true) revert RewardsAlreadyDistributed();
 
-        //transfer any dust or balance to platform 
-        uint256 platform_balance = address(this).balance;
+            /// @notice transfer any dust or balance to platform 
+            uint256 platform_balance = address(this).balance;
 
-        payable(PLATFORM_ADDRESS).transfer(platform_balance);
-    }
-
-
-    
+            payable(PLATFORM_ADDRESS).transfer(platform_balance);
+        }
 }
