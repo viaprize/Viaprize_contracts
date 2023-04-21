@@ -3,9 +3,8 @@ pragma solidity ^0.8.0;
 
 import "./SubmissionAVLTree.sol";
 
-/*  12 Tests Passing
-
-    ✓ listens for RefundInfo event
+/* 
+  YourContract
     Deployment
       ✓ Should set the right owner
     Functions
@@ -15,7 +14,7 @@ import "./SubmissionAVLTree.sol";
       ✓ Should allow users to add submissions
       ✓ Should allow users to vote on submissions and update their votes
       ✓ Should distribute rewards to funded submissions and platform
-      ✓ Should allow users to claim refunds for unfunded submissions
+      ✓ Should allow users to claim refunds for unfunded submissions and unused votes
       ✓ Should withdraw platform funds after distributing rewards
       ✓ Should not allow a user to vote with more funds than they have
       ✓ Should not allow a user to change someone else's votes
@@ -31,13 +30,13 @@ import "./SubmissionAVLTree.sol";
 ·················|···························|··············|·············|·············|···············|··············
 |  YourContract  ·  addSubmission            ·      138404  ·     141348  ·     139093  ·            9  ·          -  │
 ·················|···························|··············|·············|·············|···············|··············
-|  YourContract  ·  change_vote              ·           -  ·          -  ·     163628  ·            1  ·          -  │
+|  YourContract  ·  change_vote              ·           -  ·          -  ·     163651  ·            1  ·          -  │
 ·················|···························|··············|·············|·············|···············|··············
-|  YourContract  ·  claimRefund              ·       44280  ·     102291  ·      73286  ·            2  ·          -  │
+|  YourContract  ·  claimRefund              ·           -  ·          -  ·     123457  ·            1  ·          -  │
 ·················|···························|··············|·············|·············|···············|··············
 |  YourContract  ·  end_submission_period    ·           -  ·          -  ·      23793  ·            7  ·          -  │
 ·················|···························|··············|·············|·············|···············|··············
-|  YourContract  ·  end_voting_period        ·       83132  ·     111357  ·      95282  ·            3  ·          -  │
+|  YourContract  ·  end_voting_period        ·       83125  ·     111350  ·      95275  ·            3  ·          -  │
 ·················|···························|··············|·············|·············|···············|··············
 |  YourContract  ·  start_submission_period  ·           -  ·          -  ·      46534  ·            9  ·          -  │
 ·················|···························|··············|·············|·············|···············|··············
@@ -49,10 +48,9 @@ import "./SubmissionAVLTree.sol";
 ·············································|··············|·············|·············|···············|··············
 |  SubmissionAVLTree                         ·           -  ·          -  ·    1823038  ·        6.1 %  ·          -  │
 ·············································|··············|·············|·············|···············|··············
-|  YourContract                              ·           -  ·          -  ·    3007753  ·         10 %  ·          -  │
+|  YourContract                              ·     3154961  ·    3154973  ·    3154972  ·       10.5 %  ·          -  │
 ·--------------------------------------------|--------------|-------------|-------------|---------------|-------------·
 */
-
 
 contract YourContract {
 
@@ -74,7 +72,7 @@ contract YourContract {
     /// @notice this will be an array of the addresses of the funders making it easier to iterate through them
     address[] public funderAddresses; 
 
-    bytes32[] public thresholdCrossedSubmissions;
+    bytes32[] public thresholdCrossedSubmissions = new bytes32[](0);
 
     /// @notice  this will be a mapping of the addresses of the admins to a boolean value of true or false
     mapping (address => bool) public admins; 
@@ -100,13 +98,17 @@ contract YourContract {
     /// @notice Add a new mapping to check if a funder has received their refunds
     mapping(bytes32 => mapping(address => bool)) public refunded;
 
+    /// @notice add a new refund mapping for address to bool
+    mapping(address => bool) public addressRefunded;
+
     
     /// @notice events - Refund / Fund / Vote / Change Vote / Submission
-    event RefundInfo(uint256 refundAmount, uint256 totalRefundAmount);
+    event RefundInfo(uint256 refundAmount, address recipient);
     event FundInfo(uint256 fundAmount, address funder);
     event VoteInfo(address voter, uint256 voteAmount, bytes32 submissionHash);
     event ChangeVoteInfo(address voter, uint256 voteAmount, bytes32 submissionHash, bytes32 oldSubmissionHash);
     event SubmissionMade(bytes32 submissionHash, address submitter, uint256 threshhold);
+    event UnusedVotesRefunded(address indexed user, uint256 refundAmount);
 
 
     // Errors
@@ -128,6 +130,9 @@ contract YourContract {
 
     /// @notice if distribution has already happened
     error RewardsAlreadyDistributed();
+
+    /// @notice error for trying to claim a refund when the voting period is still active
+    error RewardsNotDistributed();
 
     /// @notice error for a submission that has already been made
     error SubmissionAlreadyMade();
@@ -214,9 +219,10 @@ contract YourContract {
     }
         total_rewards = 0;
         /// @notice  Send the platform reward
-        payable(PLATFORM_ADDRESS).transfer(platform_reward);
+        uint256 _send_platform_reward = platform_reward;
         platform_reward = 0;
         distributed = true;
+        payable(PLATFORM_ADDRESS).transfer(_send_platform_reward);
     }
 
     /// @notice update threshhold
@@ -324,11 +330,14 @@ contract YourContract {
         unused_admin_votes = 0;
     }
 
-    /// @notice Allows users to withdraw funds that they have voted for but did not cross threshhold
+    /// @notice Allows users to withdraw funds that they have voted for but did not cross threshhold as well as unused funds 
     function claimRefund(address recipient) public {
+        if (block.timestamp < voting_time) revert VotingPeriodActive();
+        if (addressRefunded[recipient] == true) revert RefundAlreadyClaimed();
+        if (recipient != msg.sender) revert NotYourVote();
+        if (funders[recipient] <= 0) revert RefundDoesntExist();
+        if (distributed != true) revert RewardsNotDistributed();
 
-        if(admins[msg.sender] == false) revert NotAdmin();
-        if(block.timestamp < voting_time) revert VotingPeriodActive();
         SubmissionAVLTree.SubmissionInfo[] memory allSubmissions = getAllSubmissions();
 
         uint256 totalRefundAmount = 0;
@@ -346,10 +355,17 @@ contract YourContract {
         unchecked { ++i; }
         }
 
+        /// @notice - remember that 5% of the fees go to the platform as a reward. 
 
+        totalRefundAmount += (funders[recipient]*95)/100;
+        totalRefundAmount -= tx.gasprice;
+
+        addressRefunded[recipient] = true;
+        if (address(this).balance <  totalRefundAmount) revert NotEnoughFunds();
         total_funds -= totalRefundAmount;
         payable(recipient).transfer(totalRefundAmount);
-        emit RefundInfo(totalRefundAmount, total_funds);
+
+        emit RefundInfo(totalRefundAmount, msg.sender);
     }      
 
     /// @notice Simple view functions to check the refund amount
@@ -358,18 +374,20 @@ contract YourContract {
         if(block.timestamp < voting_time) revert VotingPeriodActive();
         SubmissionAVLTree.SubmissionInfo[] memory allSubmissions = getAllSubmissions();
 
+        uint256 refundAmount = 0;
 
-        /// @notice  Count the number of funded submissions and add them to the fundedSubmissions array
+        /// @notice  Count the number of unfunded submissions
         for (uint256 i = 0; i < allSubmissions.length;) {
             if (!allSubmissions[i].funded) {
-                uint256 refundAmount = submissionTree.submissionFunderBalances(allSubmissions[i].submissionHash, recipient);
-                /// @notice 0.9 Eth to wei
+                uint256 subRefundAmount = submissionTree.submissionFunderBalances(allSubmissions[i].submissionHash, recipient);
+                refundAmount += subRefundAmount;
                 return refundAmount;
             }
         unchecked { ++i; }
         }
         
     }
+
 
     /// @notice create function for admins to withdraw funds to the platform
     function withdraw_platform_funds() public {
